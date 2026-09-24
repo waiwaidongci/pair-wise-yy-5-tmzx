@@ -3,17 +3,27 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>手工织锦纹样排版台</title>
+  <title>手工织锦上机配伍台</title>
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; font-family: Arial, "PingFang SC", sans-serif; background: #f3efe7; color: #282018; }
     header { padding: 18px 24px; background: #fffaf2; border-bottom: 1px solid #d9cdbc; display: flex; justify-content: space-between; gap: 16px; align-items: center; }
     h1 { margin: 0; font-size: 26px; }
+    h2 { font-size: 16px; margin: 16px 0 8px; }
+    h3 { font-size: 14px; margin: 12px 0 6px; }
     button { border: 0; border-radius: 8px; padding: 10px 13px; background: #8d3e37; color: #fff; font-weight: 800; cursor: pointer; }
+    button:disabled { background: #b9ac9e; cursor: not-allowed; }
     button.secondary { background: #71675c; }
+    button.small { padding: 6px 9px; font-size: 12px; }
     input, select { width: 100%; border: 1px solid #d9cdbc; border-radius: 6px; padding: 9px; font: inherit; background: #fff; }
     label { display: block; margin: 9px 0 5px; color: #76695e; font-size: 13px; }
-    .app { display: grid; grid-template-columns: 280px 1fr 320px; gap: 16px; padding: 16px; }
+    nav.tabs { display: flex; gap: 6px; padding: 10px 16px 0; background: #f3efe7; }
+    nav.tabs button { background: #e2d7c7; color: #5d5247; border-radius: 8px 8px 0 0; }
+    nav.tabs button.active { background: #fffaf2; color: #8d3e37; }
+    .tabpane { display: none; }
+    .tabpane.active { display: block; }
+    .app { display: grid; grid-template-columns: 280px 1fr 340px; gap: 16px; padding: 16px; }
+    .wrap { padding: 16px; }
     .panel { background: #fffaf2; border: 1px solid #d9cdbc; border-radius: 8px; padding: 14px; }
     .grid { display: grid; gap: 2px; margin: 0 auto; width: min(100%, 720px); border: 6px solid #72533c; background: #72533c; }
     .cell { aspect-ratio: 1; background: #f8ead2; cursor: pointer; border-radius: 2px; }
@@ -27,108 +37,600 @@
     .mini { aspect-ratio: 1; border-radius: 2px; }
     .toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .warning { color: #a03a2e; font-weight: 800; }
-    @media (max-width: 1000px) { header { display: block; } .app { grid-template-columns: 1fr; } }
+    .muted { color: #8a7d6f; font-size: 13px; }
+    .banner { border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; font-weight: 700; border: 1px solid; }
+    .banner.ok { background: #eef4e8; border-color: #9db48c; color: #3c5e33; }
+    .banner.warn { background: #f8ece0; border-color: #d39a5f; color: #8a5320; }
+    .banner.bad { background: #f9e7e3; border-color: #c47a6d; color: #a03a2e; }
+    .banner.info { background: #e9f0f4; border-color: #8fb0c2; color: #2c5468; }
+    .badge { display: inline-block; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 800; }
+    .badge.pending { background: #f1e3c4; color: #83621f; }
+    .badge.returned { background: #f6ddd8; color: #a03a2e; }
+    .badge.passed { background: #dfead6; color: #3c5e33; }
+    .badge.invalid { background: #e3dcd3; color: #71675c; }
+    .layout-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items:start; }
+    .layout-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; align-items:start; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { border-bottom: 1px solid #e6dccb; padding: 8px 6px; text-align: left; vertical-align: middle; }
+    th { color: #76695e; font-size: 12px; }
+    td .chip { display: inline-flex; align-items: center; gap: 6px; }
+    .dot { width: 16px; height: 16px; border-radius: 4px; display: inline-block; border: 1px solid rgba(0,0,0,.15); }
+    .itemmsg { margin: 4px 0 0; padding-left: 18px; font-size: 12px; color: #a03a2e; }
+    .itemmsg li.ok { color: #3c5e33; list-style: none; margin-left: -18px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+    .rescard { border: 1px solid #d9cdbc; border-radius: 8px; padding: 10px; background: #fffdf8; }
+    .rescard.busy { border-color: #c47a6d; background: #fcf0ec; }
+    .rescard.free { border-color: #9db48c; background: #f4f8ef; }
+    .rescard h3 { margin: 0 0 6px; display: flex; justify-content: space-between; }
+    .events { max-height: 420px; overflow: auto; }
+    .event { border-bottom: 1px solid #e6dccb; padding: 8px 2px; font-size: 13px; }
+    .event .t { color: #8a7d6f; font-size: 12px; }
+    .version { border: 1px solid #d9cdbc; border-radius: 8px; padding: 10px; margin-bottom: 8px; background: #fffdf8; display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+    .toast { position: fixed; right: 20px; bottom: 20px; background: #2f2620; color: #fff; padding: 10px 16px; border-radius: 8px; font-weight: 700; opacity: 0; transition: opacity .25s; pointer-events: none; }
+    .toast.show { opacity: 1; }
+    .fp { font-family: monospace; font-size: 11px; color: #8a7d6f; }
+    @media (max-width: 1100px) { header { display: block; } .app, .layout-2, .layout-3 { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
   <header>
-    <div><h1>手工织锦纹样排版台</h1><div>绘制经纬网格纹样，统计色线用量并保存方案。</div></div>
-    <div class="toolbar"><button id="saveBtn">保存方案</button><button id="exportBtn" class="secondary">导出JSON</button></div>
+    <div><h1>手工织锦上机配伍台</h1><div>绘制纹样 → 保存生成用色复核单 → 按色位登记染缸批次 → 复核通过后占机上机。</div></div>
+    <div class="toolbar">
+      <button id="saveBtn">保存纹样并生成复核单</button>
+      <button id="exportBtn" class="secondary">导出画布JSON</button>
+    </div>
   </header>
-  <main class="app">
-    <aside class="panel">
-      <h2>画布</h2>
-      <label>经向列数</label><input id="cols" type="number" value="18" min="6" max="36">
-      <label>纬向行数</label><input id="rows" type="number" value="14" min="6" max="32">
-      <button id="newBtn">新建网格</button>
-      <h2>色线库</h2>
-      <div class="palette" id="palette"></div>
-      <h2>基础纹样块</h2>
-      <div class="blocks">
-        <button data-block="dot" class="secondary">单点</button>
-        <button data-block="cross" class="secondary">十字</button>
-        <button data-block="diamond" class="secondary">小菱形</button>
+
+  <nav class="tabs">
+    <button data-tab="canvas" class="active">排版台</button>
+    <button data-tab="review">上机配伍复核</button>
+    <button data-tab="floor">机台·染缸·交接</button>
+    <button data-tab="history">历史版本</button>
+  </nav>
+
+  <!-- 排版台：画布数据 -->
+  <section id="tab-canvas" class="tabpane active">
+    <div class="app">
+      <aside class="panel">
+        <h2>画布</h2>
+        <label>经向列数</label><input id="cols" type="number" value="18" min="6" max="36">
+        <label>纬向行数</label><input id="rows" type="number" value="14" min="6" max="32">
+        <button id="newBtn">新建网格</button>
+        <h2>色线库（色位）</h2>
+        <div class="palette" id="palette"></div>
+        <h2>基础纹样块</h2>
+        <div class="blocks">
+          <button data-block="dot" class="secondary">单点</button>
+          <button data-block="cross" class="secondary">十字</button>
+          <button data-block="diamond" class="secondary">小菱形</button>
+        </div>
+        <p class="muted">行列、色位或基础块戳印一旦改动，指纹即变，未保存时当前复核单进入失效预警。</p>
+      </aside>
+      <section class="panel">
+        <div id="canvasBanner"></div>
+        <div class="grid" id="grid"></div>
+      </section>
+      <aside class="panel">
+        <h2>操作</h2>
+        <div class="toolbar"><button id="undoBtn" class="secondary">撤销</button><button id="redoBtn" class="secondary">重做</button></div>
+        <p class="muted">点击填色，按住拖动可连续填色。</p>
+        <h2>用色统计（保存后即复核清单）</h2>
+        <div class="stats" id="stats"></div>
+        <h2>重复单元预览</h2>
+        <div class="preview" id="preview"></div>
+        <h2>断线风险</h2>
+        <div id="risk"></div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- 配伍复核：配伍判定 -->
+  <section id="tab-review" class="tabpane">
+    <div class="wrap">
+      <div id="reviewBanner"></div>
+      <div class="layout-2">
+        <div class="panel">
+          <h2>待复核用色清单</h2>
+          <label>选择复核单</label>
+          <select id="sheetSelect"></select>
+          <div id="sheetMeta" class="muted" style="margin:8px 0"></div>
+          <table>
+            <thead><tr><th>色位</th><th>格数</th><th>染缸</th><th>批次</th><th>色距复测 / 样卡</th></tr></thead>
+            <tbody id="itemsBody"></tbody>
+          </table>
+          <div style="margin-top:12px; display:flex; gap:8px;">
+            <button id="submitReviewBtn">提交复核判定</button>
+            <button id="gotoResaveBtn" class="secondary" disabled>去重排（保存新版）</button>
+          </div>
+          <p class="muted" style="margin-top:8px">判定规则：染缸批次必须登记；同一染缸上一份未晾干不能接下一份；批次色距须复测且 ΔE ≤ <span id="tolLabel"></span> 并与样卡相符，否则退回配色。</p>
+        </div>
+        <div class="panel">
+          <h2>待复核原因 / 判定结果</h2>
+          <div id="reasonsBox"></div>
+          <h2>复核单流转</h2>
+          <div id="sheetFlow"></div>
+        </div>
       </div>
-    </aside>
-    <section class="panel"><div class="grid" id="grid"></div></section>
-    <aside class="panel">
-      <h2>操作</h2>
-      <div class="toolbar"><button id="undoBtn" class="secondary">撤销</button><button id="redoBtn" class="secondary">重做</button></div>
-      <p>点击填色，按住拖动可连续填色。</p>
-      <h2>用色统计</h2>
-      <div class="stats" id="stats"></div>
-      <h2>重复单元预览</h2>
-      <div class="preview" id="preview"></div>
-      <h2>断线风险</h2>
-      <div id="risk"></div>
-    </aside>
-  </main>
+    </div>
+  </section>
+
+  <!-- 机台/染缸/交接：交接记录 -->
+  <section id="tab-floor" class="tabpane">
+    <div class="wrap">
+      <div class="layout-3">
+        <div class="panel">
+          <h2>机台占用</h2>
+          <div class="cards" id="loomCards"></div>
+          <h2>待上机交接</h2>
+          <div id="mountQueue"></div>
+        </div>
+        <div class="panel">
+          <h2>染缸状态（晾干放行）</h2>
+          <div class="cards" id="vatCards"></div>
+          <h2>交接人</h2>
+          <input id="operator" placeholder="登记交接人姓名，留空记为“佚名”">
+          <p class="muted">染缸在复核通过时锁定；登记晾干后才能接下一份。上机/下机、晾干放行均写入交接记录。</p>
+        </div>
+        <div class="panel">
+          <h2>交接记录</h2>
+          <div class="events" id="events"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 历史版本 -->
+  <section id="tab-history" class="tabpane">
+    <div class="wrap layout-2">
+      <div class="panel">
+        <h2>纹样版本（保存即留版）</h2>
+        <div id="versions"></div>
+      </div>
+      <div class="panel">
+        <h2>复核单历史</h2>
+        <div id="sheetHistory"></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="toast" id="toast"></div>
+
   <script>
-    const colors = ["#f7e7c4","#a6322d","#1f5f78","#d6a437","#355b38","#713d7b","#1e1b18","#e98c52"];
-    const grid = document.querySelector("#grid");
-    const palette = document.querySelector("#palette");
-    const stats = document.querySelector("#stats");
-    const preview = document.querySelector("#preview");
-    const risk = document.querySelector("#risk");
-    let cols = 18, rows = 14, active = 1, block = "dot", dragging = false;
-    let cells = [];
-    let undo = [], redo = [];
-    function init(loadSaved = true) {
-      const saved = loadSaved && JSON.parse(localStorage.getItem("zfl31Pattern") || "null");
-      if (saved) { cols = saved.cols; rows = saved.rows; cells = saved.cells; }
-      else { cols = Number(document.querySelector("#cols").value); rows = Number(document.querySelector("#rows").value); cells = Array(cols * rows).fill(0); }
-      document.querySelector("#cols").value = cols; document.querySelector("#rows").value = rows;
-      render();
+    /* ========== 常量 ========== */
+    const COLORS = ["#f7e7c4","#a6322d","#1f5f78","#d6a437","#355b38","#713d7b","#1e1b18","#e98c52"];
+    const COLOR_NAMES = ["米白","茜红","靛蓝","藤黄","松绿","茄紫","玄黑","柿橙"];
+    const EMPTY = -1; // 空色位：该格不织、留白，不进入用色复核清单
+    const EMPTY_BG = "#f8ead2";
+    const PALETTE = [{ i: EMPTY, name: "空·不织", bg: EMPTY_BG, dashed: true }].concat(COLORS.map((c, i) => ({ i, name: COLOR_NAMES[i], bg: c })));
+    const VATS = ["V01","V02","V03","V04"];
+    const LOOMS = ["J01","J02","J03","J04"];
+    const DELTA_TOL = 1.5; // 样卡容差 ΔE
+    const STORE = { canvas: "zfl31Canvas", review: "zfl31Review", handoff: "zfl31Handoff", legacy: "zfl31Pattern" };
+    const STATUS_LABEL = { pending: "待复核", returned: "退回配色", passed: "复核通过", invalid: "已失效·需重排" };
+
+    /* ========== 三类数据分别承载 ========== */
+    function loadStore(key, fallback) {
+      try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch (e) { return fallback; }
     }
-    function render() {
-      palette.innerHTML = colors.map((c, i) => '<button class="swatch '+(i===active?'active':'')+'" data-color="'+i+'" style="background:'+c+'"></button>').join("");
-      palette.querySelectorAll("[data-color]").forEach(el => el.onclick = () => { active = Number(el.dataset.color); render(); });
-      grid.style.gridTemplateColumns = "repeat("+cols+", 1fr)";
-      grid.innerHTML = cells.map((v, i) => '<div class="cell" data-i="'+i+'" style="background:'+colors[v]+'"></div>').join("");
+    function saveStore(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+    let cv = loadStore(STORE.canvas, null);
+    if (!cv) {
+      const legacy = loadStore(STORE.legacy, null); // 旧排版台数据迁移为工作画布
+      cv = legacy
+        ? { cols: legacy.cols, rows: legacy.rows, cells: legacy.cells, currentFingerprint: null, versions: [] }
+        : { cols: 18, rows: 14, cells: Array(18 * 14).fill(0), currentFingerprint: null, versions: [] };
+    }
+    let rv = loadStore(STORE.review, { sheets: [] });
+    let ho = loadStore(STORE.handoff, { events: [], vatLocks: {}, loomLocks: {} });
+
+    let cols = cv.cols, rows = cv.rows, cells = cv.cells;
+    let active = 1, block = "dot", dragging = false;
+    let undoStack = [], redoStack = [];
+    let selectedSheetId = rv.sheets[0] ? rv.sheets[0].id : null;
+
+    /* ========== 工具 ========== */
+    const $ = sel => document.querySelector(sel);
+    function uid(p) { return p + Date.now().toString(36).toUpperCase() + Math.floor(Math.random() * 1296).toString(36); }
+    function fmt(t) { return new Date(t).toLocaleString("zh-CN", { hour12: false }); }
+    function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+    function fingerprint() {
+      const str = cols + "x" + rows + "|" + cells.join(".");
+      let h = 2166136261;
+      for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+      return ("0000000" + (h >>> 0).toString(16)).slice(-8).toUpperCase();
+    }
+    let toastTimer;
+    function toast(msg) {
+      const el = $("#toast"); el.textContent = msg; el.classList.add("show");
+      clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("show"), 2200);
+    }
+    function logEvent(type, detail = "") {
+      ho.events.unshift({ id: uid("E"), at: Date.now(), type, detail, operator: ($("#operator").value || "").trim() || "佚名" });
+      if (ho.events.length > 500) ho.events.length = 500;
+      saveStore(STORE.handoff, ho);
+    }
+    function latestVersion() { return cv.versions[cv.versions.length - 1] || null; }
+    function sheetById(id) { return rv.sheets.find(s => s.id === id) || null; }
+    // 图案行列/色位/基础块一动（工作画布指纹与该单不符），复核单即失效；回退/恢复回原指纹可恢复
+    function isStale(sheet) { return sheet.fingerprint !== fingerprint(); }
+    function colorName(i) { return "色位" + i + "·" + COLOR_NAMES[i]; }
+    function cellBg(v) { return v === EMPTY ? EMPTY_BG : COLORS[v]; }
+
+    /* ========== 排版台 ========== */
+    const grid = $("#grid"), palette = $("#palette"), stats = $("#stats"), preview = $("#preview"), risk = $("#risk");
+
+    function initCanvas(reset) {
+      if (reset) {
+        cols = Number($("#cols").value); rows = Number($("#rows").value); cells = Array(cols * rows).fill(EMPTY);
+        undoStack = []; redoStack = [];
+      }
+      $("#cols").value = cols; $("#rows").value = rows;
+      renderCanvas();
+    }
+    function renderCanvas() {
+      palette.innerHTML = PALETTE.map(p =>
+        '<button class="swatch ' + (p.i === active ? "active" : "") + '" data-color="' + p.i + '" title="' + p.name +
+        '" style="background:' + p.bg + (p.dashed ? ";background-image:linear-gradient(45deg,transparent 46%,#c9b796 46% 54%,transparent 54%)" : "") + '"></button>').join("");
+      palette.querySelectorAll("[data-color]").forEach(el => el.onclick = () => { active = Number(el.dataset.color); renderCanvas(); });
+      grid.style.gridTemplateColumns = "repeat(" + cols + ", 1fr)";
+      grid.innerHTML = cells.map((v, i) => '<div class="cell" data-i="' + i + '" style="background:' + cellBg(v) + '"></div>').join("");
       grid.querySelectorAll(".cell").forEach(el => {
         el.onpointerdown = () => { dragging = true; paint(Number(el.dataset.i)); };
         el.onpointerenter = () => { if (dragging) paint(Number(el.dataset.i)); };
       });
       window.onpointerup = () => dragging = false;
       renderStats();
+      renderCanvasBanner();
     }
-    function snapshot() { undo.push([...cells]); redo = []; if (undo.length > 50) undo.shift(); }
+    function renderCanvasBanner() {
+      const fp = fingerprint(), dirty = fp !== cv.currentFingerprint;
+      const lastSheet = rv.sheets.find(s => s.fingerprint === cv.currentFingerprint);
+      let html;
+      if (!cv.currentFingerprint) {
+        html = '<div class="banner info">画布尚未保存留版。点击右上角“保存纹样并生成复核单”，按当前色位生成待复核用色清单。</div>';
+      } else if (dirty) {
+        html = '<div class="banner bad">⚠ 图案行列 / 色位 / 基础块戳印已变动（新指纹 ' + fp + '）。<br>当前复核单已实质失效，保存后将作废旧单并要求重排、生成新复核单。</div>';
+      } else if (lastSheet) {
+        const cls = lastSheet.status === "passed" ? "ok" : lastSheet.status === "returned" ? "warn" : "info";
+        html = '<div class="banner ' + cls + '">当前版本与复核单 <b>' + lastSheet.id + '</b> 一致（指纹 ' + fp + '），状态：' +
+          '<span class="badge ' + lastSheet.status + '">' + STATUS_LABEL[lastSheet.status] + '</span></div>';
+      } else {
+        html = '<div class="banner info">版本指纹 ' + fp + '，可在“上机配伍复核”页处理复核单。</div>';
+      }
+      $("#canvasBanner").innerHTML = html;
+    }
+    function snapshot() { undoStack.push([...cells]); redoStack = []; if (undoStack.length > 50) undoStack.shift(); }
     function paint(i) {
       snapshot();
-      const targets = pattern(i);
-      targets.forEach(t => { if (t >= 0 && t < cells.length) cells[t] = active; });
-      render();
+      patternTargets(i).forEach(t => { if (t >= 0 && t < cells.length) cells[t] = active; });
+      renderCanvas();
     }
-    function pattern(i) {
+    function idx(x, y) { return x < 0 || x >= cols || y < 0 || y >= rows ? null : y * cols + x; }
+    function patternTargets(i) {
       const x = i % cols, y = Math.floor(i / cols);
-      if (block === "cross") return [i, idx(x-1,y), idx(x+1,y), idx(x,y-1), idx(x,y+1)].filter(v => v !== null);
-      if (block === "diamond") return [idx(x,y-1), idx(x-1,y), i, idx(x+1,y), idx(x,y+1)].filter(v => v !== null);
+      if (block === "cross") return [i, idx(x - 1, y), idx(x + 1, y), idx(x, y - 1), idx(x, y + 1)].filter(v => v !== null);
+      if (block === "diamond") return [idx(x, y - 1), idx(x - 1, y), i, idx(x + 1, y), idx(x, y + 1)].filter(v => v !== null);
       return [i];
     }
-    function idx(x,y) { return x < 0 || x >= cols || y < 0 || y >= rows ? null : y * cols + x; }
     function renderStats() {
-      const counts = colors.map((_, i) => cells.filter(v => v === i).length);
-      stats.innerHTML = counts.map((n, i) => '<div class="stat"><span><span style="display:inline-block;width:14px;height:14px;background:'+colors[i]+'"></span> 色线'+i+'</span><b>'+n+'</b></div>').join("");
-      preview.innerHTML = Array.from({length: 36}, (_, i) => '<div class="mini" style="background:'+colors[cells[(i % 6) + Math.floor(i / 6) * cols] || colors[0]]+'"></div>').join("");
+      const counts = COLORS.map((_, i) => cells.filter(v => v === i).length);
+      const emptyCount = cells.filter(v => v === EMPTY).length;
+      stats.innerHTML = '<div class="stat"><span class="chip"><span class="dot" style="background:' + EMPTY_BG +
+        ';background-image:linear-gradient(45deg,transparent 46%,#c9b796 46% 54%,transparent 54%)"></span>空·不织</span><b>' +
+        emptyCount + "</b></div>" + counts.map((n, i) =>
+        '<div class="stat"><span class="chip"><span class="dot" style="background:' + COLORS[i] + '"></span>' + colorName(i) + '</span><b>' + n + '</b></div>').join("");
+      preview.innerHTML = Array.from({ length: 36 }, (_, i) => {
+        const v = cells[(i % 6) + Math.floor(i / 6) * cols];
+        return '<div class="mini" style="background:' + cellBg(v == null ? EMPTY : v) + '"></div>';
+      }).join("");
       const riskRows = [];
       for (let y = 0; y < rows; y++) {
         let switches = 0;
-        for (let x = 1; x < cols; x++) if (cells[y*cols+x] !== cells[y*cols+x-1]) switches++;
+        for (let x = 1; x < cols; x++) if (cells[y * cols + x] !== cells[y * cols + x - 1]) switches++;
         if (switches > cols * .62) riskRows.push(y + 1);
       }
-      risk.innerHTML = riskRows.length ? '<p class="warning">第'+riskRows.join("、")+'行换色过密，可能断线。</p>' : '<p>暂无明显断线风险。</p>';
+      risk.innerHTML = riskRows.length
+        ? '<p class="warning">第' + riskRows.join("、") + '行换色过密，可能断线。</p>'
+        : '<p class="muted">暂无明显断线风险。</p>';
     }
-    document.querySelectorAll("[data-block]").forEach(btn => btn.onclick = () => block = btn.dataset.block);
-    document.querySelector("#newBtn").onclick = () => { undo = []; redo = []; init(false); };
-    document.querySelector("#undoBtn").onclick = () => { if (!undo.length) return; redo.push([...cells]); cells = undo.pop(); render(); };
-    document.querySelector("#redoBtn").onclick = () => { if (!redo.length) return; undo.push([...cells]); cells = redo.pop(); render(); };
-    document.querySelector("#saveBtn").onclick = () => localStorage.setItem("zfl31Pattern", JSON.stringify({ cols, rows, cells }));
-    document.querySelector("#exportBtn").onclick = () => {
-      const data = { cols, rows, cells, usage: colors.map((color, i) => ({ color, count: cells.filter(v => v === i).length })) };
+
+    /* ========== 保存：留版本 + 生成待复核用色清单 ========== */
+    function savePattern() {
+      const fp = fingerprint();
+      const ver = latestVersion();
+      if (ver && ver.fingerprint === fp) { toast("画布无变动，无需重排"); return; }
+
+      const usage = COLORS.map((c, i) => ({ color: i, count: cells.filter(v => v === i).length })).filter(u => u.count > 0);
+      if (!usage.length) { toast("空白画布无法生成用色清单，请先绘制色位"); return; }
+
+      // 图案一动，尚未终结的复核单失效
+      const killed = rv.sheets.filter(s => s.status === "pending" || s.status === "returned");
+      killed.forEach(s => { s.status = "invalid"; s.invalidatedAt = Date.now(); });
+      if (killed.length) logEvent("复核单失效", "图案行列/色位/基础块变动，作废 " + killed.map(s => s.id).join("、"));
+
+      const version = { id: uid("V"), at: Date.now(), cols, rows, cells: [...cells], fingerprint: fp };
+      cv.cols = cols; cv.rows = rows; cv.cells = [...cells]; cv.currentFingerprint = fp;
+      cv.versions.push(version);
+
+      const sheet = {
+        id: uid("R"), versionId: version.id, fingerprint: fp, createdAt: Date.now(),
+        cols, rows, usage, status: "pending", reasons: [], decidedAt: null, items: {}, loom: null
+      };
+      usage.forEach(u => sheet.items[u.color] = { vat: "", batch: "", retested: false, delta: "", match: "" });
+      rv.sheets.unshift(sheet);
+      selectedSheetId = sheet.id;
+
+      saveStore(STORE.canvas, cv); saveStore(STORE.review, rv);
+      logEvent("保存纹样·生成复核单", sheet.id + "，" + cols + "×" + rows + "，色位" + usage.length + "项，指纹" + fp);
+      renderAll();
+      toast("已留版 " + version.id + "，生成复核单 " + sheet.id);
+    }
+
+    /* ========== 配伍判定 ========== */
+    function evaluate(sheet) {
+      const itemMsg = {}, reasons = [];
+      const seenVat = {};
+      sheet.usage.forEach(u => {
+        const it = sheet.items[u.color], msgs = [];
+        if (!it.vat) msgs.push("未登记染缸");
+        else {
+          if (seenVat[it.vat]) msgs.push("与" + seenVat[it.vat] + "重复占用同一染缸 " + it.vat);
+          else seenVat[it.vat] = colorName(u.color);
+          const lock = ho.vatLocks[it.vat];
+          if (lock && lock.sheetId !== sheet.id) msgs.push("染缸 " + it.vat + " 上一份（" + lock.sheetId + "）未晾干，不能接下一份");
+        }
+        if (!String(it.batch).trim()) msgs.push("未登记染纱批次");
+        if (!it.retested) msgs.push("批次色距未复测");
+        else {
+          const d = parseFloat(it.delta);
+          if (Number.isNaN(d)) msgs.push("已勾复测但未填写 ΔE 数值");
+          else if (d > DELTA_TOL) msgs.push("复测色距 ΔE=" + d + " 超出样卡容差 " + DELTA_TOL);
+          if (it.match === "no") msgs.push("目比与样卡不符");
+        }
+        itemMsg[u.color] = msgs;
+        msgs.forEach(m => reasons.push(colorName(u.color) + "：" + m));
+      });
+      return { itemMsg, reasons };
+    }
+
+    function renderReview() {
+      $("#tolLabel").textContent = DELTA_TOL;
+      const select = $("#sheetSelect");
+      if (!rv.sheets.length) {
+        select.innerHTML = "";
+        $("#reviewBanner").innerHTML = '<div class="banner info">还没有复核单。请到“排版台”保存纹样，系统会按色位生成待复核用色清单。</div>';
+        $("#sheetMeta").innerHTML = ""; $("#itemsBody").innerHTML = ""; $("#reasonsBox").innerHTML = ""; $("#sheetFlow").innerHTML = "";
+        return;
+      }
+      if (!sheetById(selectedSheetId)) selectedSheetId = rv.sheets[0].id;
+      select.innerHTML = rv.sheets.map(s =>
+        '<option value="' + s.id + '"' + (s.id === selectedSheetId ? " selected" : "") + '>' +
+        s.id + "　" + STATUS_LABEL[s.status] + "　" + fmt(s.createdAt) + "</option>").join("");
+
+      const sheet = sheetById(selectedSheetId);
+      const stale = isStale(sheet);
+      const verdict = evaluate(sheet);
+      const bannerCls = sheet.status === "passed" ? "ok" : sheet.status === "returned" ? "bad" : stale ? "warn" : "info";
+      let banner = '<div class="banner ' + bannerCls + '">复核单 <b>' + sheet.id + '</b>　状态：<span class="badge ' + sheet.status + '">' +
+        STATUS_LABEL[sheet.status] + '</span>　生成于 ' + fmt(sheet.createdAt);
+      if (stale) banner += "<br>该单所依版本已不是最新版（图案行列/色位/基础块变动），复核单失效，须回排版台重排。";
+      $("#reviewBanner").innerHTML = banner + "</div>";
+
+      $("#sheetMeta").innerHTML = "对应版本 " + sheet.versionId + "，画布 " + sheet.cols + "×" + sheet.rows +
+        '　<span class="fp">指纹 ' + sheet.fingerprint + "</span>";
+
+      const canEdit = !stale && sheet.status !== "passed";
+      $("#itemsBody").innerHTML = sheet.usage.map(u => {
+        const it = sheet.items[u.color], msgs = verdict.itemMsg[u.color];
+        const vatOpts = ['<option value="">选染缸…</option>'].concat(VATS.map(v =>
+          '<option value="' + v + '"' + (it.vat === v ? " selected" : "") + ">" + v + "</option>")).join("");
+        const msgHtml = msgs.length
+          ? '<ul class="itemmsg">' + msgs.map(m => "<li>" + esc(m) + "</li>").join("") + "</ul>"
+          : '<ul class="itemmsg"><li class="ok">✓ 登记齐全，预检通过</li></ul>';
+        return "<tr" + (msgs.length ? ' class="warning"' : "") + ">" +
+          '<td><span class="chip"><span class="dot" style="background:' + COLORS[u.color] + '"></span>' + colorName(u.color) + "</span></td>" +
+          "<td><b>" + u.count + "</b></td>" +
+          '<td><select data-field="vat" data-color="' + u.color + '" ' + (canEdit ? "" : "disabled") + ">" + vatOpts + "</select></td>" +
+          '<td><input data-field="batch" data-color="' + u.color + '" value="' + esc(it.batch) + '" placeholder="如 2409-A" ' + (canEdit ? "" : "disabled") + "></td>" +
+          '<td><label style="margin:0"><input type="checkbox" data-field="retested" data-color="' + u.color + '" ' +
+            (it.retested ? "checked" : "") + " " + (canEdit ? "" : "disabled") + ' style="width:auto"> 已复测 ΔE</label>' +
+            '<input data-field="delta" data-color="' + u.color + '" value="' + esc(it.delta) + '" placeholder="≤ ' + DELTA_TOL + '" ' +
+            (canEdit ? "" : "disabled") + ' style="margin-top:4px">' +
+            '<select data-field="match" data-color="' + u.color + '" ' + (canEdit ? "" : "disabled") + ' style="margin-top:4px">' +
+            '<option value="">样卡比对…</option><option value="yes"' + (it.match === "yes" ? " selected" : "") + ">与样卡相符</option>" +
+            '<option value="no"' + (it.match === "no" ? " selected" : "") + ">与样卡不符</option></select>" + msgHtml + "</td>" +
+          "</tr>";
+      }).join("");
+
+      $("#itemsBody").querySelectorAll("[data-field]").forEach(el => {
+        el.onchange = () => {
+          const c = Number(el.dataset.color), it = sheet.items[c];
+          if (el.type === "checkbox") it.retested = el.checked;
+          else if (el.dataset.field === "match") it.match = el.value;
+          else it[el.dataset.field] = el.value;
+          saveStore(STORE.review, rv); renderReview();
+        };
+      });
+
+      // 原因区：已登记的判定结果 + 实时预检
+      let reasonsHtml = "";
+      if (sheet.status === "returned" && sheet.reasons.length) {
+        reasonsHtml += '<h3>上次判定：退回配色（' + fmt(sheet.decidedAt) + "）</h3><ul class='itemmsg'>" +
+          sheet.reasons.map(r => "<li>" + esc(r) + "</li>").join("") + "</ul>";
+      } else if (sheet.status === "passed") {
+        reasonsHtml += '<p class="muted">该单已于 ' + fmt(sheet.decidedAt) + " 复核通过，染缸已锁定，可到“机台·染缸·交接”页办理上机。</p>";
+      }
+      if (canEdit) {
+        reasonsHtml += verdict.reasons.length
+          ? '<h3>实时预检——待复核原因（' + verdict.reasons.length + "项）</h3><ul class='itemmsg'>" +
+            verdict.reasons.map(r => "<li>" + esc(r) + "</li>").join("") + "</ul>"
+          : "<h3>实时预检</h3><p style='color:#3c5e33;font-weight:700'>✓ 各色位均满足上机条件，可提交复核判定。</p>";
+      }
+      $("#reasonsBox").innerHTML = reasonsHtml;
+
+      $("#submitReviewBtn").disabled = !canEdit;
+      $("#gotoResaveBtn").disabled = !stale;
+
+      $("#sheetFlow").innerHTML =
+        "<div class='stat'><span>① 保存生成清单</span><b>" + fmt(sheet.createdAt).split(" ")[0] + "</b></div>" +
+        "<div class='stat'><span>② 提交复核判定</span><b>" + (sheet.decidedAt ? fmt(sheet.decidedAt) : "—") + "</b></div>" +
+        "<div class='stat'><span>③ 判定结果</span><span class='badge " + sheet.status + "'>" + STATUS_LABEL[sheet.status] + "</span></div>" +
+        "<div class='stat'><span>④ 上机交接</span><b>" + (sheet.loom ? sheet.loom + " 已上机" : sheet.status === "passed" ? "待上机" : "—") + "</b></div>";
+    }
+
+    function submitReview() {
+      const sheet = sheetById(selectedSheetId);
+      if (!sheet || isStale(sheet) || sheet.status === "passed") return;
+      const { reasons } = evaluate(sheet);
+      sheet.reasons = reasons; sheet.decidedAt = Date.now();
+      if (reasons.length) {
+        sheet.status = "returned";
+        logEvent("复核退回配色", sheet.id + "：" + reasons.length + "项待整改（" + reasons.slice(0, 2).join("；") + (reasons.length > 2 ? " 等" : "") + "）");
+        toast("已退回配色，请按原因整改后重提");
+      } else {
+        sheet.status = "passed";
+        Object.values(sheet.items).forEach(it => { ho.vatLocks[it.vat] = { sheetId: sheet.id, at: Date.now() }; });
+        logEvent("复核通过·染缸锁定", sheet.id + "，占用染缸 " + Object.values(sheet.items).map(i => i.vat).join("、"));
+        toast("复核通过，染缸已锁定，可办理上机");
+      }
+      saveStore(STORE.review, rv);
+      renderAll();
+    }
+
+    /* ========== 机台 / 染缸 / 交接 ========== */
+    function renderFloor() {
+      $("#operator").value = ho.operator || "";
+      // 机台
+      $("#loomCards").innerHTML = LOOMS.map(j => {
+        const lock = ho.loomLocks[j];
+        if (!lock) return '<div class="rescard free"><h3>' + j + ' <span class="badge passed">空闲</span></h3><p class="muted">可接复核通过单</p></div>';
+        const s = sheetById(lock.sheetId);
+        return '<div class="rescard busy"><h3>' + j + ' <span class="badge returned">占用</span></h3>' +
+          "<div>复核单 " + lock.sheetId + "</div><div class='muted'>" + (s ? s.cols + "×" + s.rows + "　" : "") + "上机 " + fmt(lock.at) + "</div>" +
+          '<button class="small" style="margin-top:6px" data-offloom="' + j + '">登记下机</button></div>';
+      }).join("");
+      // 染缸
+      $("#vatCards").innerHTML = VATS.map(v => {
+        const lock = ho.vatLocks[v];
+        if (!lock) return '<div class="rescard free"><h3>' + v + ' <span class="badge passed">已晾干·空闲</span></h3><p class="muted">可接下一份染纱</p></div>';
+        return '<div class="rescard busy"><h3>' + v + ' <span class="badge returned">未晾干</span></h3>' +
+          "<div>占用复核单 " + lock.sheetId + "</div><div class='muted'>锁定 " + fmt(lock.at) + "</div>" +
+          '<button class="small" style="margin-top:6px" data-dryvat="' + v + '">登记晾干放行</button></div>';
+      }).join("");
+      // 待上机队列
+      const queue = rv.sheets.filter(s => s.status === "passed" && !s.loom && !isStale(s));
+      $("#mountQueue").innerHTML = queue.length ? queue.map(s => {
+        const freeLooms = LOOMS.filter(j => !ho.loomLocks[j]);
+        const opts = freeLooms.map(j => '<option value="' + j + '">' + j + "</option>").join("");
+        return '<div class="rescard" style="margin-bottom:8px"><h3>' + s.id + ' <span class="badge passed">通过</span></h3>' +
+          '<div class="muted" style="margin-bottom:6px">' + s.cols + "×" + s.rows + "，色位 " + s.usage.length + "项</div>" +
+          '<select data-mountloom="' + s.id + '" ' + (freeLooms.length ? "" : "disabled") + ">" +
+          (freeLooms.length ? opts : '<option>机台全满</option>') + "</select>" +
+          '<button class="small" style="margin-top:6px;width:100%" data-mount="' + s.id + '" ' + (freeLooms.length ? "" : "disabled") + ">办理上机交接</button></div>";
+      }).join("") : '<p class="muted">暂无待上机的复核单（须复核通过且未失效）。</p>';
+
+      // 事件
+      $("#events").innerHTML = ho.events.length ? ho.events.map(e =>
+        '<div class="event"><b>' + esc(e.type) + "</b> <span class='t'>· " + esc(e.operator || "佚名") + " · " + fmt(e.at) + "</span>" +
+        (e.detail ? "<div>" + esc(e.detail) + "</div>" : "") + "</div>").join("")
+        : '<p class="muted">暂无交接记录。</p>';
+
+      $("#tab-floor").querySelectorAll("[data-offloom]").forEach(b => b.onclick = () => offLoom(b.dataset.offloom));
+      $("#tab-floor").querySelectorAll("[data-dryvat]").forEach(b => b.onclick = () => dryVat(b.dataset.dryvat));
+      $("#tab-floor").querySelectorAll("[data-mount]").forEach(b => b.onclick = () => {
+        const loom = $("#tab-floor").querySelector('[data-mountloom="' + b.dataset.mount + '"]').value;
+        mountLoom(b.dataset.mount, loom);
+      });
+    }
+    function mountLoom(sheetId, loom) {
+      const s = sheetById(sheetId);
+      if (!s || !loom || ho.loomLocks[loom]) return;
+      ho.loomLocks[loom] = { sheetId, at: Date.now() };
+      s.loom = loom;
+      logEvent("上机交接", "复核单 " + sheetId + " → 机台 " + loom + "（" + s.cols + "×" + s.rows + "）");
+      saveStore(STORE.review, rv);
+      renderAll(); toast(sheetId + " 已上 " + loom);
+    }
+    function offLoom(loom) {
+      const lock = ho.loomLocks[loom]; if (!lock) return;
+      delete ho.loomLocks[loom];
+      const s = sheetById(lock.sheetId); if (s) s.offLoomAt = Date.now();
+      logEvent("下机交接", "机台 " + loom + " 释放，原复核单 " + lock.sheetId);
+      renderAll(); toast(loom + " 已下机，机台空闲");
+    }
+    function dryVat(vat) {
+      const lock = ho.vatLocks[vat]; if (!lock) return;
+      delete ho.vatLocks[vat];
+      logEvent("染缸晾干放行", "染缸 " + vat + " 已晾干，可接下一份（原复核单 " + lock.sheetId + "）");
+      renderAll(); toast(vat + " 已晾干放行");
+    }
+
+    /* ========== 历史版本 ========== */
+    function renderHistory() {
+      $("#versions").innerHTML = cv.versions.length ? cv.versions.slice().reverse().map(v => {
+        const sheets = rv.sheets.filter(s => s.versionId === v.id);
+        const used = COLORS.map((_, i) => v.cells.filter(x => x === i).length);
+        return '<div class="version"><div><b>' + v.id + "</b> <span class='muted'>" + fmt(v.at) + "</span>" +
+          ' <span class="fp">' + v.fingerprint + "</span><div>" + v.cols + "×" + v.rows + "，用色 " +
+          COLORS.map((c, i) => used[i] ? '<span class="chip"><span class="dot" style="background:' + c + '"></span>' + used[i] + "</span>" : "").join(" ") +
+          "</div><div style='margin-top:4px'>" + sheets.map(s => '<span class="badge ' + s.status + '">' + s.id + " " + STATUS_LABEL[s.status] + "</span>").join(" ") + "</div></div>" +
+          '<button class="small secondary" data-restore="' + v.id + '">恢复到排版台</button></div>';
+      }).join("") : '<p class="muted">尚未保存过版本。</p>';
+
+      $("#sheetHistory").innerHTML = rv.sheets.length ? rv.sheets.map(s =>
+        '<div class="version"><div><b>' + s.id + '</b> <span class="badge ' + s.status + '">' + STATUS_LABEL[s.status] + "</span>" +
+        ' <div class="muted">' + fmt(sheetCreate(s)) + " · 版本 " + s.versionId + ' <span class="fp">' + s.fingerprint + "</span></div>" +
+        '<div class="muted">色位 ' + s.usage.length + " 项" + (s.loom ? " · 机台 " + s.loom : "") + "</div></div>" +
+        '<button class="small secondary" data-opensheet="' + s.id + '">查看</button></div>').join("")
+        : '<p class="muted">暂无复核单。</p>';
+
+      $("#tab-history").querySelectorAll("[data-restore]").forEach(b => b.onclick = () => restoreVersion(b.dataset.restore));
+      $("#tab-history").querySelectorAll("[data-opensheet]").forEach(b => b.onclick = () => {
+        selectedSheetId = b.dataset.opensheet; saveStore(STORE.review, rv); switchTab("review");
+      });
+    }
+    function sheetCreate(s) { return s.createdAt; }
+    function restoreVersion(vid) {
+      const v = cv.versions.find(x => x.id === vid); if (!v) return;
+      cols = v.cols; rows = v.rows; cells = [...v.cells];
+      undoStack = []; redoStack = [];
+      logEvent("恢复历史版本", v.id + "（指纹 " + v.fingerprint + "）载入排版台，保存后另出新复核单");
+      saveStore(STORE.canvas, cv);
+      switchTab("canvas"); renderAll();
+      toast("已恢复 " + v.id + "，保存即生成新复核单");
+    }
+
+    /* ========== 总渲染 / 事件绑定 ========== */
+    function renderAll() { renderCanvas(); renderReview(); renderFloor(); renderHistory(); }
+    function switchTab(name) {
+      document.querySelectorAll("nav.tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+      document.querySelectorAll(".tabpane").forEach(p => p.classList.toggle("active", p.id === "tab-" + name));
+    }
+    document.querySelectorAll("nav.tabs button").forEach(b => b.onclick = () => switchTab(b.dataset.tab));
+    document.querySelectorAll("[data-block]").forEach(btn => btn.onclick = () => { block = btn.dataset.block; });
+    $("#newBtn").onclick = () => { undoStack = []; redoStack = []; initCanvas(true); };
+    $("#undoBtn").onclick = () => { if (!undoStack.length) return; redoStack.push([...cells]); cells = undoStack.pop(); renderCanvas(); };
+    $("#redoBtn").onclick = () => { if (!redoStack.length) return; undoStack.push([...cells]); cells = redoStack.pop(); renderCanvas(); };
+    $("#saveBtn").onclick = savePattern;
+    $("#submitReviewBtn").onclick = submitReview;
+    $("#gotoResaveBtn").onclick = () => switchTab("canvas");
+    $("#sheetSelect").onchange = e => { selectedSheetId = e.target.value; renderReview(); };
+    $("#operator").onchange = e => { ho.operator = e.target.value; saveStore(STORE.handoff, ho); };
+    $("#exportBtn").onclick = () => {
+      const data = {
+        canvas: { cols, rows, cells, fingerprint: fingerprint(), usage: COLORS.map((color, i) => ({ color, name: COLOR_NAMES[i], count: cells.filter(v => v === i).length })) },
+        reviewSheets: rv.sheets,
+        handoff: { vatLocks: ho.vatLocks, loomLocks: ho.loomLocks, events: ho.events }
+      };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "brocade-pattern.json"; a.click(); URL.revokeObjectURL(a.href);
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = "brocade-matching-" + fingerprint() + ".json";
+      a.click(); URL.revokeObjectURL(a.href);
     };
-    init();
+
+    initCanvas(false);
+    renderAll();
   </script>
 </body>
 </html>
